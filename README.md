@@ -17,8 +17,6 @@ EduDataCollection aims to:
 * Standardize educational data collection workflows across states
 * Reduce repetitive manual downloading and processing
 * Document state specific data systems and reporting structures
-* Support reproducible educational research
-* Create a foundation for scalable multi-state data acquisition
 
 ---
 
@@ -33,7 +31,6 @@ Acquire publicly available educational datasets from state education agencies an
 * Financial and expenditure reports
 * Teacher and staffing records
 * Accountability and performance metrics
-* Postsecondary readiness indicators
 * Additional education related datasets as available
 
 ### Documentation
