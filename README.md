@@ -1,45 +1,119 @@
-# EduDataHelper
+# EduDataCollection
 
-Automated collection of public K–12 educational datasets from state education agencies and data portals, starting with Michigan's education platform.
+A research framework for collecting, documenting, and organizing publicly available K–12 education datasets from state education agencies across the United States.
+
+Current target states include Michigan, Pennsylvania, California, Utah, Arizona, Florida, Nevada, Massachusetts, New York, and Georgia, with the long-term goal of creating a scalable workflow that can be extended to all 50 states.
 
 ---
 
 ## Motivation
 
-State education agencies publish large volumes of public data but rarely offer bulk-download functionality. Researchers spend significant time manually navigating web interfaces to download datasets across years, districts, and reporting categories.
-EduDataHelper automates this process, creating reproducible, programmatic workflows for educational data acquisition so researchers can focus on analysis, not collection.  
+State education agencies publish large amounts of valuable educational data, including assessment results, enrollment statistics, financial records, staffing information, accountability metrics, and student demographic data. However, these datasets are often distributed across different websites, dashboards, downloadable reports, and custom data portals.
+
+Researchers frequently spend significant time locating, downloading, organizing, and documenting these datasets before analysis can begin.
+
+EduDataCollection aims to:
+
+* Standardize educational data collection workflows across states
+* Reduce repetitive manual downloading and processing
+* Document state specific data systems and reporting structures
+* Support reproducible educational research
+* Create a foundation for scalable multi-state data acquisition
 
 ---
 
-## Current Features — Michigan (MiSchoolData)
+## Project Goals
 
-- Accesses the MiSchoolData backend API directly, bypassing manual web navigation
-- Retrieves datasets across all available school years automatically
-- Supports Intermediate School District (ISD) level geographic filtering
-- Automates requests across dozens of educational reporting categories
-- Generates structured logs of successful and failed dataset requests
+### Data Collection
+
+Acquire publicly available educational datasets from state education agencies and related public data portals, including:
+
+* Assessment and test score data
+* Enrollment and demographic data
+* Financial and expenditure reports
+* Teacher and staffing records
+* Accountability and performance metrics
+* Postsecondary readiness indicators
+* Additional education related datasets as available
+
+### Documentation
+
+Maintain detailed records of:
+
+* Dataset names and descriptions
+* Source URLs
+* Available reporting years
+* Geographic coverage
+* Collection methods
+* Download procedures
+* State specific portal structures
+
+### Automation
+
+When possible, automate data acquisition through:
+
+* Public APIs
+* Download endpoints
+* Bulk export systems
+* Scripted retrieval workflows
+
+Because each state's education data system is structured differently, automation is implemented on a state by state basis.
 
 ---
 
-## Example Workflow
+## Current Coverage
 
-1. **Select a state module** — start with Michigan or a future state implementation
-2. **Define geography** — choose districts, counties, ISDs, or other regional units
-3. **Specify years** — select one or more reporting years to retrieve
-4. **Submit requests** — automated API calls are made to the state's education data system
-5. **Receive outputs** — downloadable datasets and processing logs are generated
+### Completed / In Progress
+
+* Michigan
+* Pennsylvania
+
+### Planned Expansion
+
+* California
+* Utah
+* Arizona
+* Florida
+* Nevada
+* Massachusetts
+* New York
+* Georgia
+
+Additional states may be added as the project expands.
+
+---
+
+## Workflow
+
+1. Identify state education data sources
+2. Document portal structure and available datasets
+3. Locate bulk-download options or public APIs
+4. Collect and organize datasets by category
+5. Record metadata and collection procedures
+6. Maintain reproducible code and documentation
+7. Store outputs in a standardized folder structure
 
 ---
 
 ## Technology
 
-- Python
-- Requests
-- JSON / CSV
-- Jupyter Notebooks / Google Colab
+* Python
+* Requests
+* Pandas
+* JSON / CSV
+* Jupyter Notebooks
+* Google Colab
+* GitHub
+* Google Drive
+
+---
+
+## Research Use
+
+This repository is intended for educational research, data collection, documentation, and reproducible workflow development.
 
 ---
 
 ## Disclaimer
 
-This project interacts only with publicly available educational data systems and is intended for research and data collection purposes.
+This project does not collect private student information and interacts only with publicly available educational data systems.
