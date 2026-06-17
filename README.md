@@ -12,12 +12,6 @@ State education agencies publish large amounts of valuable educational data, inc
 
 Researchers frequently spend significant time locating, downloading, organizing, and documenting these datasets before analysis can begin.
 
-EduDataCollection aims to:
-
-* Standardize educational data collection workflows across states
-* Reduce repetitive manual downloading and processing
-* Document state specific data systems and reporting structures
-
 ---
 
 ## Project Goals
