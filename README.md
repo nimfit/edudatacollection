@@ -64,17 +64,18 @@ Because each state's education data system is structured differently, automation
 
 * Michigan
 * Pennsylvania
+* Utah
+* Arizona
+* Florida
+* Utah
+* Arizona
+* Florida
 
 ### Planned Expansion
 
 * California
-* Utah
-* Arizona
-* Florida
 * Nevada
 * Massachusetts
-* New York
-* Georgia
 
 Additional states may be added as the project expands.
 
