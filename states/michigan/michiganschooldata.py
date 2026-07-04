@@ -8,6 +8,17 @@ Original file is located at
 """
 
 import pandas as pd
+import os
+import re
+import io
+import base64
+from datetime import datetime, timezone, timedelta
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
+from google.colab import drive
 import requests
 import json
 import csv
@@ -102,63 +113,77 @@ years = {
 }
 
 data_file_strings = [
-    "~AssessmentParticipationCrossTab",
-    "~Section31a2",
-    "~CollegeReadiness2",
-    "~Grades38Assessments2",
-    "~Grades38StudentBreakdown",
-    "~HighSchoolAssessments",
-    "~HighSchoolAssessmentsStudentBreakdown",
-    "~MiAccessELAProficiencyCrossTab",
-    "~MiAccessMathProficiencyCrossTab",
-    "~MSTEPELAProficiencyCrossTab",
-    "~MSTEPMathProficiencyCrossTab",
-    "~PSATProficiencyEBRWCrossTab",
-    "~PSATProficiencyMathCrossTab",
-    "~SATProficiencyEBRWCrossTab",
-    "~SATProficiencyMathCrossTab",
-    "~StudentGrowth",
-    "~StudentGrowthCrossTab",
-    "~Top30Bottom30",
+    #Assessment and Accountability
+    "AssessmentParticipationCrossTab",
+    "Section31a2",
+    "CollegeReadiness2",
+    "Grades38Assessments2",
+    "HighSchoolAssessments",
+    "MiAccessELAProficiencyCrossTab",
+    "MiAccessMathProficiencyCrossTab",
+    "SATProficiencyEBRWCrossTab",
+    "SATProficiencyMathCrossTab",
+    "StudentGrowth",
+    "StudentGrowthCrossTab",
 
+    #General / entity
     "EducationalEntityMaster",
     "LegislativeDistrict",
 
-    "~EarlyChildhoodCount2",
-    "~EarlyChildhoodAttendance",
+    #Early childhood
+    "EarlyChildhoodCount2",
+    "EarlyChildhoodAttendance",
     "KindergartenCount",
-    "~EarlyChildhoodPathways2",
-    "~EarlyChildhoodParticipantAssessments",
-    "~EarlyChildhoodParticipantAssessmentsStatewide",
+    "EarlyChildhoodPathways2",
+    "EarlyChildhoodParticipantAssessments",
+    "EarlyChildhoodParticipantAssessmentsStatewide",
 
-    "~WidaAccessPerformance",
-    "~EnglishLearnerStudentGrowth",
+    #English learners
+    "WidaAccessPerformance",
+    "EnglishLearnerStudentGrowth",
 
-    "~FinancialTransparencyDashboard",
+    #Finance
+    "FinancialTransparencyDashboard",
 
+    #Dashboards / services
     "ParentDashboard",
     "SchoolServicesAndOfferings",
 
-    "~IheEnrollmentByHighSchool2",
-    "~CollegeEnrollmentDestination",
-    "~PscProgress",
-    "~IheRemedialCoursesByHighSchool2",
+    #Postsecondary
+    "IheEnrollmentByHighSchool2",
+    "CollegeEnrollmentDestination",
+    "PscProgress",
+    "IheRemedialCoursesByHighSchool2",
 
-    "~EarlyChildhoodContinuityComparisons",
-    "~EarlyChildhoodContinuityServicePathways",
+    #special education
+    "EarlyChildhoodContinuityComparisons",
+    "EarlyChildhoodContinuityServicePathways",
     "SpecialEducationDashboard",
 
-    "~NewEducatorEffectiveness",
+    #Staff
+    "NewEducatorEffectiveness",
     "StaffCount3",
 
-    "~StudentCountAttendance",
-    "~GraduationDropout3",
-    "~StudentCountStudentMobility",
+    #Students
+    "StudentCountAttendance",
+    "GraduationDropout3",
+    "StudentCountStudentMobility",
     "ResidentNonResident",
     "StudentCountRetainedInGrade2",
     "StudentCount2",
     "StudentCountCrosstab"
 ]
+"""
+maybe_without_tilde = [
+    "EarlyChildhoodCount2",
+    "EarlyChildhoodAttendance",
+    "EarlyChildhoodPathways2",
+    "WidaAccessPerformance",
+    "EnglishLearnerStudentGrowth",
+    "GraduationDropout3",
+    "StudentCountAttendance",
+    "StudentCountStudentMobility",
+]"""
 
 URL = "https://www.mischooldata.org/umbraco/surface/RedesignWebService/CreateK12SchoolDataFile"
 
@@ -205,14 +230,14 @@ The main function, given an email and a list of ISDs, goes through the Michigan 
  so it will all go there.
 '''
 def main():
-  user_email = "exampleemail@gmail.com" #change this to your desired email
+  user_email = "example@gmail.com" #change this to your desired email
 
   #Define the list of ISD IDs you want to process.
   #For ex: isd_ids_to_process = ["63", "64"]
   #Example - isd 63
   #If you want data from all ISD's get it from ['63', '64', '65', '66', '67', '68', '69', '70', '71', '72', '73', '74', '75', '76', '77', '78', '79', '80', '81', '82', '93', '83', '84', '85', '86', '87', '88', '89', '90', '91', '92', '94', '95', '96', '97', '99', '100', '101', '102', '103', '104', '105', '115', '106', '107', '108', '109', '110', '111', '112', '113', '114', '116', '117', '118', '119', '98', '120']
 
-  isd_ids_to_process = ["119"] #This is wayne county's ISD
+  isd_ids_to_process = ["114"] #This is the State ISD
 
   all_results = []
   for isd_id in isd_ids_to_process:
@@ -228,4 +253,283 @@ def main():
 
   return all_results
 
-main()
+#Using gmail API
+label_name = "michigandata"
+personal_folder = "michiganstatedata"
+shared_drive_folder_id = "1CKqAPgjhhL-A0F4D9HVXegQ6g_TMp9us"
+expiry_hours = 72
+
+scopes = [
+    "https://www.googleapis.com/auth/gmail.readonly",
+    "https://www.googleapis.com/auth/drive",
+    "https://www.googleapis.com/auth/gmail.modify"
+]
+
+#include map to organize
+category_map = {
+    "Assessment": ["Assessment", "Grades 3", "Grades 8", "High School", "MI-Access", "M-STEP", "PSAT", "SAT", "Student Growth", "College Readiness", "Top 30", "Bottom 30"],
+    "EarlyChildhood": ["Early Childhood", "Kindergarten"],
+    "EnglishLearners": ["WIDA", "English Learner"],
+    "Staff": ["Educator", "Staff"],
+    "Students": ["Student Count", "Graduation", "Dropout", "Mobility", "Resident", "Retained", "Parent Dashboard"],
+    "Finance": ["Financial"],
+    "SpecialEducation": ["Special Education"],
+    "Other": []
+}
+
+log_filename = f"mi_education_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+log_path = f"/content/drive/MyDrive/colab_secrets/{log_filename}"
+log_rows = []
+
+drive.mount('/content/drive')
+
+# Copy credentials from Drive to Colab session
+creds_path = "/content/drive/MyDrive/colab_secrets/credentials.json"
+token_path = "/content/drive/MyDrive/colab_secrets/token.json"
+
+if os.path.exists(creds_path):
+    !cp "{creds_path}" credentials.json
+    print("credentials.json loaded")
+else:
+    print("credentials.json not found in colab_secrets folder")
+
+if os.path.exists(token_path):
+    !cp "{token_path}" token.json
+    print("token.json loaded")
+else:
+    print("No token.json yet - you'll get a login popup on first run")
+
+def log_entry(filename, link, status, reason=""):
+  timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+  log_rows.append({
+        "timestamp": timestamp,
+        "filename": filename,
+        "link": link,
+        "status": status,
+        "reason": reason
+    })
+
+def save_log(drive_service, personal_root_id):
+  with open(log_filename, "w", newline="") as f:
+    writer = csv.DictWriter(f, fieldnames=log_rows[0].keys())
+    writer.writeheader()
+    writer.writerows(log_rows)
+  with open(log_filename, "rb") as f:
+    file_metadata = {"name": log_filename, "parents": [personal_root_id]}
+    media = MediaIoBaseUpload(io.BytesIO(f.read()), mimetype="text/csv")
+    drive_service.files().create(body=file_metadata, media_body=media, fields="id").execute()
+  print(f"Log saved: {log_filename}")
+
+from google_auth_oauthlib.flow import Flow
+
+def authenticate_gmail():
+    creds = None
+    if os.path.exists("token.json"):
+        creds = Credentials.from_authorized_user_file("token.json", scopes)
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = Flow.from_client_secrets_file(
+                "credentials.json",
+                scopes=scopes,
+                redirect_uri="urn:ietf:wg:oauth:2.0:oob"
+            )
+            auth_url, _ = flow.authorization_url(prompt="consent")
+            print("Go to this URL and log in:")
+            print(auth_url)
+            code = input("Paste the authorization code here: ")
+            flow.fetch_token(code=code)
+            creds = flow.credentials
+        with open("token.json", "w") as token:
+            token.write(creds.to_json())
+    return creds
+
+def get_label_id(gmail_service, label_name):
+  response = gmail_service.users().labels().list(userId="me").execute()
+  labels = response.get("labels", [])
+  for label in labels:
+    if label["name"].lower() == label_name.lower():
+      return label["id"]
+  raise ValueError(f"Label '{label_name}' not found in Gmail.")
+
+def extract_links_from_email(gmail_service, msg_id):
+  """This function gets the download links out of a Gmail email."""
+  msg = gmail_service.users().messages().get(userId="me", id=msg_id, format="full").execute()
+  payload = msg.get("payload", {})
+  parts = payload.get("parts", [payload])
+  links = []
+  data_type = None
+  isd_name = None
+  school_year = None
+
+
+  for part in parts:
+    text = decode(part)
+    found = re.findall(r"https?://[^\s\"'<>]+\.csv[^\s\"'<>]*", text)
+    links.extend(found)
+
+    match = re.search(r'your (.+?) file for (.+?), school year (\d{4}-\d{2})', text)
+    if match:
+      data_type = match.group(1).strip()
+      isd_name = match.group(2).strip()
+      school_year = match.group(3).strip()
+  links = list(dict.fromkeys(links))
+  email_time = datetime.fromtimestamp(int(msg.get("internalDate", 0)) / 1000, tz=timezone.utc)
+  return links, email_time, data_type, isd_name, school_year
+
+def decode(part):
+  data = part.get("body", {}).get("data", "")
+  if data:
+    return base64.urlsafe_b64decode(data).decode("utf-8", errors="ignore")
+  return ""
+
+def remove_label_from_email(gmail_service, msg_id, label_id):
+  """This function removes a label from a Gmail email."""
+  gmail_service.users().messages().modify(userId="me", id=msg_id, body={"removeLabelIds": [label_id]}).execute()
+
+def categorize_file(data_type):
+  """Sorts into one of the category folders"""
+  if not data_type:
+    return "Other"
+  for category, terms in category_map.items():
+    for term in terms:
+      if term.lower() in data_type.lower():
+        return category
+  return "Other"
+
+def get_create_drive_folder(drive_service, folder_name, parent_id=None):
+    """Find a Drive folder by name (and parent), or create it if missing."""
+    query = f"name='{folder_name}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
+    if parent_id:
+        query += f" and '{parent_id}' in parents"
+    results = drive_service.files().list(q=query, fields="files(id, name)").execute()
+    files = results.get("files", [])
+    if files:
+        return files[0]["id"]
+    # Create it
+    metadata = {"name": folder_name, "mimeType": "application/vnd.google-apps.folder"}
+    if parent_id:
+        metadata["parents"] = [parent_id]
+    folder = drive_service.files().create(body=metadata, fields="id").execute()
+    return folder["id"]
+
+def upload_csv_to_drive(drive_service, csv_content, filename, folder_id):
+  """Copy a uploaded folder to the shared folder"""
+  file_metadata = {"name": filename, "parents": [folder_id]}
+  media = MediaIoBaseUpload(io.BytesIO(csv_content), mimetype="text/csv")
+  file = drive_service.files().create(body=file_metadata, media_body=media, fields="id").execute()
+  print(f" Uploaded: {filename}")
+
+def file_exists(drive_service, filename, folder_id):
+  """Check if a file exists in a folder"""
+  query = f"name='{filename}' and '{folder_id}' in parents and trashed=false"
+  results = drive_service.files().list(q=query, fields="files(id, name)").execute()
+  return len(results.get("files", [])) > 0
+
+def process_emails():
+    print("Authenticating")
+    creds = authenticate_gmail()
+    gmail_service = build("gmail", "v1", credentials=creds)
+    drive_service = build("drive", "v3", credentials=creds)
+
+    label_id = get_label_id(gmail_service, label_name)
+    print(f"Found label: {label_name} with ID: {label_id}")
+
+    messages = []
+    page_token = None
+    while True:
+        response = gmail_service.users().messages().list(userId="me", labelIds=[label_id], pageToken=page_token).execute()
+        messages.extend(response.get("messages", []))
+        page_token = response.get("nextPageToken")
+        if not page_token:
+            break
+
+    print(f"Found {len(messages)} messages with label: {label_name}")
+    personal_root_id = get_create_drive_folder(drive_service, personal_folder)
+    now = datetime.now(tz=timezone.utc)
+    cutoff = now - timedelta(hours=expiry_hours)
+    stats = {"downloaded": 0, "skipped_expired": 0, "skipped_no_link": 0, "errors": 0}
+
+    for i, msg in enumerate(messages):
+        print(f"\nProcessing email {i+1}/{len(messages)}...")
+
+        links, email_time, data_type, isd_name, school_year = extract_links_from_email(gmail_service, msg["id"])
+        if email_time < cutoff:
+            age = (now - email_time).total_seconds() / 3600
+            print(f"Skipping - expired ({age:.1f}hrs old)")
+            log_entry("N/A", "N/A", "SKIPPED", f"Email expired ({age:.1f} hrs old)")
+            stats["skipped_expired"] += 1
+            remove_label_from_email(gmail_service, msg["id"], label_id)
+            continue
+        if not links:
+            print(f"No CSV links found")
+            log_entry("N/A", "N/A", "SKIPPED", "No CSV links found in email")
+            stats["skipped_no_link"] += 1
+            remove_label_from_email(gmail_service, msg["id"], label_id)
+            continue
+
+        for link in links:
+            safe_data_type = data_type.replace(" ", "_").replace("/", "-") if data_type else "Unknown"
+            safe_isd = isd_name.replace(" ", "_").replace("/", "-").replace(",", "") if isd_name else "UnknownISD"
+            filename = f"{safe_isd}_{safe_data_type}_{school_year}.csv"
+
+            category = categorize_file(data_type)
+            try:
+                r = requests.get(link, timeout=30)
+                if r.status_code != 200:
+                    print(f"Failed ({r.status_code}): {filename}")
+                    log_entry(filename, link, "FAILED", f"HTTP {r.status_code}")
+                    stats["errors"] += 1
+                    continue
+
+                csv_content = r.content
+                category_folder_id = get_create_drive_folder(drive_service, category, personal_root_id)
+                if file_exists(drive_service, filename, category_folder_id):
+                  print(f"File already exists: {filename}")
+                  log_entry(filename, link, "SKIPPED", "File already exists")
+                  continue
+                upload_csv_to_drive(drive_service, csv_content, filename, category_folder_id)
+
+                shared_category_id = get_create_drive_folder(drive_service, category, shared_drive_folder_id)
+                if not file_exists(drive_service, filename, shared_category_id):
+                  print(f"Uploading to shared folder: {filename}")
+                  upload_csv_to_drive(drive_service, csv_content, filename, shared_category_id)
+
+                log_entry(filename, link, "SUCCESS")
+                stats["downloaded"] += 1
+
+            except Exception as e:
+                print(f"Error with {filename}: {e}")
+                log_entry(filename, link, "ERROR", str(e))
+                stats["errors"] += 1
+        remove_label_from_email(gmail_service, msg["id"], label_id)
+
+    save_log(drive_service, personal_root_id)
+
+    print(f"\nSummary")
+    print(f"Downloaded:        {stats['downloaded']}")
+    print(f"Skipped (expired): {stats['skipped_expired']}")
+    print(f"Skipped (no link): {stats['skipped_no_link']}")
+    print(f"Errors:            {stats['errors']}")
+
+# Test cell, peek at one email's link before processing everything
+creds = authenticate_gmail()
+gmail_service = build("gmail", "v1", credentials=creds)
+label_id = get_label_id(gmail_service, label_name)
+
+# Just grab the first 5 messages
+response = gmail_service.users().messages().list(userId="me", labelIds=[label_id], maxResults=10).execute()
+for msg in response.get("messages", []):
+    links, email_time, data_type, isd_name, school_year = extract_links_from_email(gmail_service, msg["id"])
+    safe_data_type = data_type.replace(" ", "_").replace("/", "-") if data_type else "Unknown"
+    safe_isd = isd_name.replace(" ", "_").replace("/", "-").replace(",", "") if isd_name else "UnknownISD"
+    filename = f"{safe_isd}_{safe_data_type}_{school_year}.csv"
+    category = categorize_file(data_type)
+    print(f"Data type: {data_type}")
+    print(f"ISD: {isd_name}")
+    print(f"Year: {school_year}")
+    print(f"Filename: {filename}")
+    print(f"Category: {category}")
+    print(f"Link: {links}")
+    print("---")
