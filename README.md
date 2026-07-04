@@ -2,7 +2,7 @@
 
 A research framework for collecting, documenting, and organizing publicly available K–12 education datasets from state education agencies across the United States.
 
-Current target states include Michigan, Pennsylvania, California, Utah, Arizona, Florida, Nevada, Massachusetts, New York, and Georgia, with the long-term goal of creating a scalable workflow that can be extended to all 50 states.
+Current target states include Michigan so far with the long-term goal of creating a scalable workflow that can be extended to all 50 states.
 
 ---
 
