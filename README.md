@@ -50,27 +50,6 @@ When possible, automate data acquisition through:
 
 Because each state's education data system is structured differently, automation is implemented on a state by state basis.
 
----
-
-## Current Coverage
-
-### Completed / In Progress
-
-* Michigan
-* Pennsylvania
-* Utah
-* Arizona
-* Florida
-* Utah
-* Arizona
-* Florida
-
-### Planned Expansion
-
-* California
-* Nevada
-* Massachusetts
-
 Additional states may be added as the project expands.
 
 ---
